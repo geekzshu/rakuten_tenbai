@@ -1,23 +1,24 @@
+"""Streamlit interface for Rakuten scraper."""
+import asyncio
 import streamlit as st
-from main import fetch_html, parse_products
 
-st.title("楽天スクレイパー")
+from main import run, save_csv, Product
 
+st.title("Rakuten Scraper")
 keyword = st.text_input("検索キーワード")
-skip_shop = st.text_input("除外したい店舗名")
+skip_shop = st.text_input("除外店舗名")
+run_button = st.button("検索")
 
-if st.button("検索"):
-    if not keyword:
-        st.error("検索キーワードを入力してください")
+if run_button and keyword:
+    st.write("Running scraper...")
+    products = asyncio.run(run(keyword, skip_shop))
+    if products:
+        st.write(f"{len(products)} 商品が見つかりました")
+        # Display table
+        st.table([{"商品名": p.name, "店舗名": p.shop, "URL": p.url} for p in products])
+        save_csv(products, "result.csv")
+        st.success("result.csv を保存しました")
     else:
-        try:
-            html = fetch_html(keyword)
-            products = [p for p in parse_products(html) if p.shop != skip_shop]
-            if products:
-                st.success(f"{len(products)}件の結果")
-                data = [{"商品名": p.name, "店舗名": p.shop, "URL": p.url} for p in products]
-                st.dataframe(data)
-            else:
-                st.info("該当する商品が見つかりませんでした")
-        except Exception as e:
-            st.error(f"取得中にエラーが発生しました: {e}")
+        st.write("該当する商品がありませんでした")
+
+main
