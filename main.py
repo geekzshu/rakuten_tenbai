@@ -67,6 +67,7 @@ def save_csv(products: List[Product], path: str) -> None:
         writer.writerow(["商品名", "店舗名", "URL"])
         for p in products:
             writer.writerow([p.name, p.shop, p.url])
+
     logging.info("Saved %d products to %s", len(products), path)
 
 def main() -> None:
@@ -76,10 +77,12 @@ def main() -> None:
     keyword = sys.argv[1]
     skip_shop = sys.argv[2]
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 
-    products = asyncio.run(run(keyword, skip_shop))
-    save_csv(products, "result.csv")
+    html = fetch_html(keyword)
+    all_products = parse_products(html)
+    filtered = [p for p in all_products if p.shop != skip_shop]
+    save_csv(filtered, "result.csv")
+    print(f"Saved {len(filtered)} products to result.csv")
 
 if __name__ == "__main__":
     main()

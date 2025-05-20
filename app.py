@@ -20,3 +20,5 @@ if run_button and keyword:
         st.success("result.csv を保存しました")
     else:
         st.write("該当する商品がありませんでした")
+
+main
