@@ -98,11 +98,9 @@ def main() -> None:
     skip_shop = sys.argv[2]
 
 
-    html = fetch_html(keyword)
-    all_products = parse_products(html)
-    filtered = [p for p in all_products if p.shop != skip_shop]
-    save_csv(filtered, "result.csv")
-    print(f"Saved {len(filtered)} products to result.csv")
+    products = asyncio.run(run(keyword, skip_shop))
+    save_csv(products, "result.csv")
+    print(f"Saved {len(products)} products to result.csv")
 
 if __name__ == "__main__":
     main()

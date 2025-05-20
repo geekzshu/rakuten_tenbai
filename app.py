@@ -16,7 +16,15 @@ if run_button and keyword:
         st.write(f"{len(products)} 商品が見つかりました")
         # Display table
         st.table([{"商品名": p.name, "店舗名": p.shop, "URL": p.url} for p in products])
-        save_csv(products, "result.csv")
+        csv_path = "result.csv"
+        save_csv(products, csv_path)
         st.success("result.csv を保存しました")
+        with open(csv_path, "rb") as f:
+            st.download_button(
+                "CSV をダウンロード",
+                f,
+                file_name="result.csv",
+                mime="text/csv",
+            )
     else:
         st.write("該当する商品がありませんでした")
