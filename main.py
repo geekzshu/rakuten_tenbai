@@ -22,6 +22,16 @@ from playwright.async_api import async_playwright, Page
 
 SEARCH_URL = "https://search.rakuten.co.jp/search/mall/{query}/"
 
+# Configure logging to output detailed progress information
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("scraper.log", encoding="utf-8"),
+        logging.StreamHandler()
+    ],
+)
+
 @dataclass
 class Product:
     url: str
@@ -38,10 +48,13 @@ async def scrape_page(page: Page, keyword: str, skip_shop: str) -> List[Product]
     items = await page.query_selector_all("div.searchresultitem")
     products: List[Product] = []
     logging.info("Found %d items", len(items))
-    for item in items:
+    for idx, item in enumerate(items, 1):
+        logging.info("Processing item %d/%d", idx, len(items))
         link = await item.query_selector("h2 > a")
-        shop_el = await item.query_selector(".searchresultitem__shop")
+        # Store name link is wrapped in an anchor with class '_ellipsis'
+        shop_el = await item.query_selector("a._ellipsis")
         if not link or not shop_el:
+            logging.warning("Missing link or shop element; skipping item %d", idx)
             continue
         name = (await link.inner_text()).strip()
         href = await link.get_attribute("href")
@@ -51,17 +64,24 @@ async def scrape_page(page: Page, keyword: str, skip_shop: str) -> List[Product]
             continue
         products.append(Product(url=href or "", name=name, shop=shop))
         logging.info("Collected %s from %s", name, shop)
+    logging.info("Finished scraping %d products", len(products))
     return products
 
 async def run(keyword: str, skip_shop: str) -> List[Product]:
+    logging.info("Starting run with keyword=%s skip_shop=%s", keyword, skip_shop)
     async with async_playwright() as p:
+        logging.info("Launching browser")
         browser = await p.firefox.launch(headless=True)
         page = await browser.new_page()
+        logging.info("Browser launched")
         products = await scrape_page(page, keyword, skip_shop)
         await browser.close()
+        logging.info("Browser closed")
+        logging.info("Collected %d products", len(products))
         return products
 
 def save_csv(products: List[Product], path: str) -> None:
+    logging.info("Saving results to %s", path)
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
         writer.writerow(["商品名", "店舗名", "URL"])
