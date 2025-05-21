@@ -67,8 +67,12 @@ async def scrape_page(page: Page, keyword: str, skip_shop: str) -> List[Product]
     query = urllib.parse.quote(keyword)
     url = SEARCH_URL.format(query=query)
     logging.info("Opening %s", url)
-    await page.goto(url)
-    await page.wait_for_selector("div.searchresultitem")
+    try:
+        await page.goto(url, timeout=60000)  # タイムアウトを60秒に延長
+        await page.wait_for_selector("div.searchresultitem", timeout=60000)
+    except Exception as e:
+        logging.error("Failed to load page: %s", str(e))
+        return []
     items = await page.query_selector_all("div.searchresultitem")
     products: List[Product] = []
     logging.info("Found %d items", len(items))
