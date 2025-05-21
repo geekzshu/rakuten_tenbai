@@ -2,9 +2,13 @@
 """Rakuten scraper using Playwright.
 
 This script searches Rakuten for a given keyword and extracts product URL,
-product name and store name from the search results. After collection, items
-from stores containing a specified exclusion term are removed. Progress is
-logged to stdout. The scraped results are saved into ``result.csv``.
+
+product name and store name from the search results. Results from a
+specified store can be skipped. Progress is logged to stdout. The scraped
+results are saved into the ``results`` folder with a timestamped file name.
+
+
+
 
 Note: Network access might be blocked in this environment, so the scraper
 may fail to fetch pages when executed here.
@@ -15,12 +19,20 @@ import csv
 import logging
 import sys
 import urllib.parse
+import datetime
+import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 
 from playwright.async_api import async_playwright, Page
 
 SEARCH_URL = "https://search.rakuten.co.jp/search/mall/{query}/"
+
+
+# Directory where CSV files are saved
+RESULTS_DIR = Path("results")
+
 
 # Configure logging to output detailed progress information
 logging.basicConfig(
@@ -38,8 +50,20 @@ class Product:
     name: str
     shop: str
 
-async def scrape_page(page: Page, keyword: str) -> List[Product]:
-    """Scrape Rakuten search results for ``keyword``."""
+
+
+def generate_csv_path(keyword: str, shop: str) -> str:
+    """Return path for CSV file based on keyword, shop and current time."""
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
+    safe_keyword = keyword.replace(" ", "_")
+    safe_shop = shop.replace(" ", "_") if shop else "none"
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{safe_keyword}_{safe_shop}_{timestamp}.csv"
+    return str(RESULTS_DIR / filename)
+
+async def scrape_page(page: Page, keyword: str, skip_shop: str) -> List[Product]:
+    """Scrape Rakuten search results for ``keyword`` skipping ``skip_shop``."""
+
     query = urllib.parse.quote(keyword)
     url = SEARCH_URL.format(query=query)
     logging.info("Opening %s", url)
@@ -71,7 +95,8 @@ async def run(keyword: str, skip_shop: str) -> List[Product]:
         browser = await p.firefox.launch(headless=True)
         page = await browser.new_page()
         logging.info("Browser launched")
-        products = await scrape_page(page, keyword)
+
+        products = await scrape_page(page, keyword, skip_shop)
         await browser.close()
         logging.info("Browser closed")
 
@@ -107,10 +132,11 @@ def main() -> None:
     keyword = sys.argv[1]
     skip_shop = sys.argv[2]
 
-
     products = asyncio.run(run(keyword, skip_shop))
-    save_csv(products, "result.csv")
-    print(f"Saved {len(products)} products to result.csv")
+    path = generate_csv_path(keyword, skip_shop)
+    save_csv(products, path)
+    print(f"Saved {len(products)} products to {path}")
+
 
 if __name__ == "__main__":
     main()

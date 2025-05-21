@@ -1,8 +1,9 @@
 """Streamlit interface for Rakuten scraper."""
 import asyncio
 import streamlit as st
+from pathlib import Path
 
-from main import run, save_csv, Product
+from main import run, save_csv, Product, generate_csv_path
 
 st.title("Rakuten Scraper")
 keyword = st.text_input("検索キーワード")
@@ -14,17 +15,12 @@ if run_button and keyword:
     products = asyncio.run(run(keyword, skip_shop))
     if products:
         st.write(f"{len(products)} 商品が見つかりました")
-        # Display table
         st.table([{"商品名": p.name, "店舗名": p.shop, "URL": p.url} for p in products])
-        csv_path = "result.csv"
-        save_csv(products, csv_path)
-        st.success("result.csv を保存しました")
-        with open(csv_path, "rb") as f:
-            st.download_button(
-                "CSV をダウンロード",
-                f,
-                file_name="result.csv",
-                mime="text/csv",
-            )
+        path = generate_csv_path(keyword, skip_shop)
+        save_csv(products, path)
+        st.success(f"{Path(path).name} を保存しました")
+        with open(path, "rb") as f:
+            st.download_button("CSVをダウンロード", f, file_name=Path(path).name)
+
     else:
         st.write("該当する商品がありませんでした")
