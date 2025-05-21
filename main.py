@@ -2,9 +2,9 @@
 """Rakuten scraper using Playwright.
 
 This script searches Rakuten for a given keyword and extracts product URL,
-product name and store name from the search results. Products from stores
-containing a specified exclusion term in their name are skipped. Progress
-is logged to stdout. The scraped results are saved into ``result.csv``.
+product name and store name from the search results. Results from a
+specified store can be skipped. Progress is logged to stdout. The scraped
+results are saved into ``result.csv``.
 
 Note: Network access might be blocked in this environment, so the scraper
 may fail to fetch pages when executed here.
@@ -59,7 +59,7 @@ async def scrape_page(page: Page, keyword: str, skip_shop: str) -> List[Product]
         name = (await link.inner_text()).strip()
         href = await link.get_attribute("href")
         shop = (await shop_el.inner_text()).strip()
-        if skip_shop and skip_shop in shop:
+        if shop == skip_shop:
             logging.info("Skipping %s from %s", name, shop)
             continue
         products.append(Product(url=href or "", name=name, shop=shop))
@@ -104,4 +104,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
