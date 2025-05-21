@@ -21,5 +21,6 @@ if run_button and keyword:
         st.success(f"{Path(path).name} を保存しました")
         with open(path, "rb") as f:
             st.download_button("CSVをダウンロード", f, file_name=Path(path).name)
+
     else:
         st.write("該当する商品がありませんでした")
