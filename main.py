@@ -2,9 +2,9 @@
 """Rakuten scraper using Playwright.
 
 This script searches Rakuten for a given keyword and extracts product URL,
-product name and store name from the search results. Results from a
-specified store can be skipped. Progress is logged to stdout. The scraped
-results are saved into ``result.csv``.
+product name and store name from the search results. After collection, items
+from stores containing a specified exclusion term are removed. Progress is
+logged to stdout. The scraped results are saved into ``result.csv``.
 
 Note: Network access might be blocked in this environment, so the scraper
 may fail to fetch pages when executed here.
@@ -38,8 +38,8 @@ class Product:
     name: str
     shop: str
 
-async def scrape_page(page: Page, keyword: str, skip_shop: str) -> List[Product]:
-    """Scrape Rakuten search results for ``keyword`` skipping ``skip_shop``."""
+async def scrape_page(page: Page, keyword: str) -> List[Product]:
+    """Scrape Rakuten search results for ``keyword``."""
     query = urllib.parse.quote(keyword)
     url = SEARCH_URL.format(query=query)
     logging.info("Opening %s", url)
@@ -59,9 +59,6 @@ async def scrape_page(page: Page, keyword: str, skip_shop: str) -> List[Product]
         name = (await link.inner_text()).strip()
         href = await link.get_attribute("href")
         shop = (await shop_el.inner_text()).strip()
-        if shop == skip_shop:
-            logging.info("Skipping %s from %s", name, shop)
-            continue
         products.append(Product(url=href or "", name=name, shop=shop))
         logging.info("Collected %s from %s", name, shop)
     logging.info("Finished scraping %d products", len(products))
@@ -74,9 +71,22 @@ async def run(keyword: str, skip_shop: str) -> List[Product]:
         browser = await p.firefox.launch(headless=True)
         page = await browser.new_page()
         logging.info("Browser launched")
-        products = await scrape_page(page, keyword, skip_shop)
+        products = await scrape_page(page, keyword)
         await browser.close()
         logging.info("Browser closed")
+
+    if skip_shop:
+        filtered: List[Product] = []
+        for p in products:
+            if skip_shop in p.shop:
+                logging.info("Excluding %s from %s", p.name, p.shop)
+                continue
+            filtered.append(p)
+        logging.info(
+            "Filtered products: %d -> %d", len(products), len(filtered)
+        )
+        return filtered
+    else:
         logging.info("Collected %d products", len(products))
         return products
 
@@ -104,3 +114,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
