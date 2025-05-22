@@ -24,4 +24,5 @@ ENV/
 htmlcov/
 
 # その他
-.DS_Store 
+.DS_Store
+results/

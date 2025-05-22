@@ -52,14 +52,18 @@ class Product:
 
 
 
-def generate_csv_path(keyword: str, shop: str) -> str:
-    """Return path for CSV file based on keyword, shop and current time."""
+def generate_csv_path(keyword: str, shop: str, results_dir: Path = RESULTS_DIR) -> str:
+    """Return path for CSV file based on keyword, shop and current time.
+
+    ``results_dir`` specifies the directory where the CSV file will be
+    created. By default, it uses ``RESULTS_DIR``.
+    """
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M")
     safe_keyword = keyword.replace(" ", "_")
     safe_shop = shop.replace(" ", "_") if shop else "none"
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    results_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{safe_keyword}_{safe_shop}_{timestamp}.csv"
-    return str(RESULTS_DIR / filename)
+    return str(results_dir / filename)
 
 async def scrape_page(page: Page, keyword: str, skip_shop: str) -> List[Product]:
     """Scrape Rakuten search results for ``keyword`` skipping ``skip_shop``."""
