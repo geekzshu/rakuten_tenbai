@@ -18,6 +18,9 @@ ENV/
 # ログファイル
 *.log
 
+# csvファイル
+*.csv
+
 # キャッシュ
 .pytest_cache/
 .coverage
